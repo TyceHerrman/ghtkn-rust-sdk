@@ -1,7 +1,8 @@
 [package]
 name = "ghtkn"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+rust-version = "1.88"
 description = "GitHub token management via OAuth device flow"
 license = "MIT"
 repository = "https://github.com/user/ghtkn-rust-sdk"
@@ -23,3 +24,6 @@ tokio = { version = "1", features = ["full", "test-util"] }
 wiremock = "0.6"
 tempfile = "3"
 pretty_assertions = "1"
+
+[lints.clippy]
+borrowed_box = "allow"

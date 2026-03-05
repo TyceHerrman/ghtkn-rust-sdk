@@ -108,27 +108,27 @@ where
     F: Fn(&str) -> Option<String>,
 {
     if os == "windows" {
-        if let Some(app_data) = get_env("APPDATA") {
-            if !app_data.is_empty() {
-                return Ok(PathBuf::from(app_data).join("ghtkn").join("ghtkn.yaml"));
-            }
+        if let Some(app_data) = get_env("APPDATA")
+            && !app_data.is_empty()
+        {
+            return Ok(PathBuf::from(app_data).join("ghtkn").join("ghtkn.yaml"));
         }
         return Err(Error::Config("APPDATA is required on Windows".into()));
     }
 
     // Linux / macOS
-    if let Some(xdg) = get_env("XDG_CONFIG_HOME") {
-        if !xdg.is_empty() {
-            return Ok(PathBuf::from(xdg).join("ghtkn").join("ghtkn.yaml"));
-        }
+    if let Some(xdg) = get_env("XDG_CONFIG_HOME")
+        && !xdg.is_empty()
+    {
+        return Ok(PathBuf::from(xdg).join("ghtkn").join("ghtkn.yaml"));
     }
-    if let Some(home) = get_env("HOME") {
-        if !home.is_empty() {
-            return Ok(PathBuf::from(home)
-                .join(".config")
-                .join("ghtkn")
-                .join("ghtkn.yaml"));
-        }
+    if let Some(home) = get_env("HOME")
+        && !home.is_empty()
+    {
+        return Ok(PathBuf::from(home)
+            .join(".config")
+            .join("ghtkn")
+            .join("ghtkn.yaml"));
     }
     Err(Error::Config(
         "XDG_CONFIG_HOME or HOME is required on Linux and macOS".into(),
@@ -148,10 +148,10 @@ pub fn select_app<'a>(cfg: &'a Config, key: &str, owner: &str) -> Option<&'a App
         return None;
     }
 
-    if !owner.is_empty() {
-        if let Some(app) = cfg.apps.iter().find(|a| a.git_owner == owner) {
-            return Some(app);
-        }
+    if !owner.is_empty()
+        && let Some(app) = cfg.apps.iter().find(|a| a.git_owner == owner)
+    {
+        return Some(app);
     }
 
     if key.is_empty() {
