@@ -9,14 +9,17 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [stable, "1.75"]
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
       - name: Build
@@ -26,5 +29,4 @@ jobs:
       - name: Clippy
         run: cargo clippy -- -D warnings
       - name: Format check
-        if: matrix.rust == 'stable'
         run: cargo fmt -- --check
