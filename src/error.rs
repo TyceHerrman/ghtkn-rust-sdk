@@ -13,9 +13,15 @@ pub enum Error {
     GitHub(String),
     #[error("browser error: {0}")]
     Browser(String),
-    /// Non-fatal sentinel: token was obtained but could not be stored.
-    #[error("store token error: {0}")]
-    StoreToken(String),
+    /// Non-fatal sentinel: token was obtained but could not be persisted in
+    /// the keyring. Matches Go SDK's `ErrStoreToken` — the caller should
+    /// extract the token and app from this variant and continue.
+    #[error("store token error: {message}")]
+    StoreToken {
+        message: String,
+        token: Box<crate::keyring::AccessToken>,
+        app: Box<crate::config::App>,
+    },
     #[error("{0}")]
     Other(String),
 }

@@ -70,7 +70,9 @@ pub trait DeviceCodeUI: Send + Sync {
 
 /// Simple terminal-based device code UI.
 ///
-/// Prints the user code, expiration date, and verification URI to stderr.
+/// Behavior matches the Go SDK's `SimpleDeviceCodeUI`:
+/// - If stdin **is** a terminal: prints the user code and waits for Enter
+/// - If stdin is **not** a terminal (pipe/redirect): prints and waits 5 seconds
 pub struct SimpleDeviceCodeUI;
 
 impl DeviceCodeUI for SimpleDeviceCodeUI {
@@ -79,14 +81,30 @@ impl DeviceCodeUI for SimpleDeviceCodeUI {
         device_code: &DeviceCodeResponse,
         expiration_date: DateTime<Utc>,
     ) -> Result<(), crate::Error> {
-        eprintln!();
-        eprintln!("  User Code: {}", device_code.user_code);
-        eprintln!(
-            "  Expires: {}",
-            expiration_date.format("%Y-%m-%d %H:%M:%S UTC")
-        );
-        eprintln!("  Open: {}", device_code.verification_uri);
-        eprintln!();
+        use std::io::IsTerminal;
+
+        let ex = expiration_date.to_rfc3339();
+
+        if std::io::stdin().is_terminal() {
+            eprintln!(
+                "The application uses the device flow to generate your GitHub User Access Token.\n\
+                 Copy your one-time code: {}\n\
+                 This code is valid until {}\n\
+                 Press Enter to open {} in your browser...",
+                device_code.user_code, ex, device_code.verification_uri,
+            );
+            let mut buf = String::new();
+            let _ = std::io::stdin().read_line(&mut buf);
+        } else {
+            eprintln!(
+                "The application uses the device flow to generate your GitHub User Access Token.\n\
+                 Copy your one-time code: {}\n\
+                 This code is valid until {}\n\
+                 {} will open automatically after a few seconds...",
+                device_code.user_code, ex, device_code.verification_uri,
+            );
+            std::thread::sleep(Duration::from_secs(5));
+        }
         Ok(())
     }
 }
@@ -147,6 +165,9 @@ impl<'a> DeviceFlowClient<'a> {
     /// 3. Opens the verification URI in the browser (non-fatal on failure)
     /// 4. Polls for the access token until authorized or expired
     pub async fn create(&self, client_id: &str) -> crate::Result<AccessToken> {
+        if client_id.is_empty() {
+            return Err(crate::Error::DeviceFlow("client id is required".into()));
+        }
         let device_code = self.get_device_code(client_id).await?;
 
         let now = Utc::now();
@@ -187,6 +208,14 @@ impl<'a> DeviceFlowClient<'a> {
             .send()
             .await
             .map_err(|e| crate::Error::DeviceFlow(format!("request device code: {e}")))?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_else(|_| "<unreadable>".into());
+            return Err(crate::Error::DeviceFlow(format!(
+                "error from GitHub: status={status}, body={body}"
+            )));
+        }
 
         resp.json::<DeviceCodeResponse>()
             .await
@@ -703,6 +732,44 @@ mod tests {
         let expiration = Utc::now() + chrono::Duration::seconds(900);
         let result = ui.show(&device_code, expiration);
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_create_rejects_empty_client_id() {
+        let browser = OkBrowser;
+        let logger = Logger::new();
+        let ui = NoopUI;
+        let client = DeviceFlowClient::new(reqwest::Client::new(), &browser, &logger, &ui);
+        let result = client.create("").await;
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("client id is required"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_device_code_non_200_status() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/login/device/code"))
+            .respond_with(ResponseTemplate::new(422).set_body_string("bad request"))
+            .mount(&server)
+            .await;
+
+        let browser = OkBrowser;
+        let logger = Logger::new();
+        let ui = NoopUI;
+        let client = make_client(&server, &browser, &logger, &ui);
+        let result = client.get_device_code("test_client_id").await;
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("error from GitHub") && err.contains("422"),
+            "unexpected error: {err}"
+        );
     }
 
     #[test]

@@ -153,11 +153,23 @@ impl Client {
         };
 
         // 5. Try keyring, fall back to device flow.
-        let token = self
+        //
+        // StoreToken is non-fatal: the token was obtained but the keyring
+        // write failed.  Re-wrap it so the caller's (token, app) are the
+        // ones from the error, exactly like Go's
+        // `return token, app, ErrStoreToken`.
+        match self
             .get_or_create_token(&service, &app, input.min_expiration)
-            .await?;
-
-        Ok((token, app))
+            .await
+        {
+            Ok(token) => Ok((token, app)),
+            Err(Error::StoreToken { message, token, .. }) => Err(Error::StoreToken {
+                message,
+                token,
+                app: Box::new(app),
+            }),
+            Err(e) => Err(e),
+        }
     }
 
     /// Try to retrieve a valid token from the keyring; create one if
@@ -170,13 +182,14 @@ impl Client {
     ) -> crate::Result<AccessToken> {
         match self.keyring.get(service, &app.client_id) {
             Ok(Some(token)) => {
-                if !check_expired(token.expiration_date, min_expiration) {
+                if check_expired(token.expiration_date, min_expiration) {
+                    // Token expired — log and fall through to create a new one.
                     if let Some(cb) = &self.logger.expire {
                         cb(token.expiration_date);
                     }
+                } else {
                     return Ok(token);
                 }
-                // Token expired, need a new one.
             }
             Ok(None) => {
                 if let Some(cb) = &self.logger.access_token_is_not_found_in_keyring {
@@ -195,6 +208,9 @@ impl Client {
 
     /// Run the device flow to obtain a fresh token, fetch the user login,
     /// and store the result in the keyring.
+    ///
+    /// If the keyring write fails, returns [`Error::StoreToken`] carrying the
+    /// token and app (matching Go SDK's `ErrStoreToken` non-fatal sentinel).
     async fn create_token(&self, service: &str, app: &App) -> crate::Result<AccessToken> {
         let http_client = reqwest::Client::new();
 
@@ -217,9 +233,15 @@ impl Client {
             login: user.login,
         };
 
-        // Store in keyring (non-fatal -- the token is returned regardless).
+        // Store in keyring — non-fatal. On failure return StoreToken with
+        // the token and app so callers can still use them (matches Go SDK's
+        // `return token, app, ErrStoreToken`).
         if let Err(e) = self.keyring.set(service, &app.client_id, &kr_token) {
-            tracing::warn!(error = %e, "failed to store token in keyring");
+            return Err(Error::StoreToken {
+                message: e.to_string(),
+                token: Box::new(kr_token),
+                app: Box::new(app.clone()),
+            });
         }
 
         Ok(kr_token)
