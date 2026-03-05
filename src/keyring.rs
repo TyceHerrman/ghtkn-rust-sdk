@@ -107,6 +107,9 @@ impl Keyring {
         if token.login.is_empty() {
             return Err(Error::Keyring("login is required".into()));
         }
+        if token.expiration_date == DateTime::<Utc>::default() {
+            return Err(Error::Keyring("expiration_date is required".into()));
+        }
 
         Ok(Some(token))
     }
