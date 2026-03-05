@@ -1,0 +1,27 @@
+---
+tasks:
+  - name: test
+    short: t
+    description: Run all tests
+    usage: Run all tests
+    script: cargo test
+  - name: vet
+    short: v
+    description: Run clippy linter
+    usage: Run clippy with deny warnings
+    script: cargo clippy -- -D warnings
+  - name: fmt
+    short: f
+    description: Check formatting
+    usage: Check code formatting
+    script: cargo fmt -- --check
+  - name: build
+    short: b
+    description: Build the project
+    usage: Build the project
+    script: cargo build
+  - name: doc
+    short: d
+    description: Generate documentation
+    usage: Generate documentation
+    script: cargo doc --no-deps --open
