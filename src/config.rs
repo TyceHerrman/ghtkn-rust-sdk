@@ -79,13 +79,19 @@ impl App {
 
 /// Read and parse a YAML configuration file.
 ///
-/// Returns an error if the file cannot be opened or contains invalid YAML.
-pub fn read(path: &str) -> crate::Result<Config> {
+/// Returns `Ok(None)` if the path is empty (matches Go SDK behavior where an
+/// empty config path is a no-op). Returns an error if the file cannot be opened
+/// or contains invalid YAML.
+pub fn read(path: impl AsRef<std::path::Path>) -> crate::Result<Option<Config>> {
+    let path = path.as_ref();
+    if path.as_os_str().is_empty() {
+        return Ok(None);
+    }
     let contents = std::fs::read_to_string(path)
         .map_err(|e| Error::Config(format!("open a configuration file: {e}")))?;
     let cfg: Config = serde_yaml::from_str(&contents)
         .map_err(|e| Error::Config(format!("decode a configuration file as YAML: {e}")))?;
-    Ok(cfg)
+    Ok(Some(cfg))
 }
 
 /// Return the default configuration file path for ghtkn.
@@ -334,7 +340,7 @@ mod tests {
         )
         .unwrap();
 
-        let cfg = read(path.to_str().unwrap()).unwrap();
+        let cfg = read(&path).unwrap().unwrap();
         assert_eq!(cfg.apps.len(), 1);
         assert_eq!(cfg.apps[0].name, "test-app");
         assert_eq!(cfg.apps[0].client_id, "Iv1.abc123");
@@ -351,7 +357,7 @@ mod tests {
         )
         .unwrap();
 
-        let cfg = read(path.to_str().unwrap()).unwrap();
+        let cfg = read(&path).unwrap().unwrap();
         assert_eq!(cfg.apps.len(), 2);
     }
 
@@ -365,8 +371,14 @@ mod tests {
         )
         .unwrap();
 
-        let cfg = read(path.to_str().unwrap()).unwrap();
+        let cfg = read(&path).unwrap().unwrap();
         assert_eq!(cfg.apps[0].git_owner, "myorg");
+    }
+
+    #[test]
+    fn read_empty_path() {
+        let result = read("").unwrap();
+        assert!(result.is_none());
     }
 
     #[test]
@@ -381,7 +393,7 @@ mod tests {
         let path = dir.path().join("ghtkn.yaml");
         std::fs::write(&path, "invalid yaml: [").unwrap();
 
-        let result = read(path.to_str().unwrap());
+        let result = read(&path);
         assert!(result.is_err());
     }
 
