@@ -43,10 +43,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@cargo-deny
       - uses: taiki-e/install-action@cargo-machete
-      - uses: taiki-e/install-action@cargo-msrv
       - name: cargo deny
         run: cargo deny check
       - name: cargo machete
         run: cargo machete --with-metadata
-      - name: cargo msrv verify
-        run: cargo msrv verify
+      - name: MSRV check
+        run: |
+          MSRV=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].rust_version')
+          rustup toolchain install "$MSRV" --profile minimal
+          cargo +"$MSRV" check --all-targets
