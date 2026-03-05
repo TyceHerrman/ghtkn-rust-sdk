@@ -25,3 +25,15 @@ tasks:
     description: Generate documentation
     usage: Generate documentation
     script: cargo doc --no-deps --open
+  - name: deny
+    description: Check advisories and licenses
+    usage: Run cargo-deny checks
+    script: cargo deny check
+  - name: machete
+    description: Detect unused dependencies
+    usage: Find unused dependencies
+    script: cargo machete --with-metadata
+  - name: msrv
+    description: Verify MSRV
+    usage: Verify minimum supported Rust version
+    script: cargo msrv verify

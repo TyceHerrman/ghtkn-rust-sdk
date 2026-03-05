@@ -11,7 +11,7 @@ use chrono::{TimeZone, Utc};
 use pretty_assertions::assert_eq;
 
 use ghtkn::config::{App, Config};
-use ghtkn::keyring::{AccessToken, KeyringBackend, DEFAULT_SERVICE_KEY};
+use ghtkn::keyring::{AccessToken, DEFAULT_SERVICE_KEY, KeyringBackend};
 
 // ---------------------------------------------------------------------------
 // Mock keyring backend (same pattern as unit tests, but accessible here)

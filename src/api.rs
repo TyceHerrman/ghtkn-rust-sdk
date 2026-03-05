@@ -14,7 +14,7 @@ use crate::config::{self, App};
 use crate::deviceflow::{DeviceCodeUI, DeviceFlowClient, SimpleDeviceCodeUI};
 use crate::error::Error;
 use crate::github::GitHubClient;
-use crate::keyring::{AccessToken, Keyring, DEFAULT_SERVICE_KEY};
+use crate::keyring::{AccessToken, DEFAULT_SERVICE_KEY, Keyring};
 use crate::log::Logger;
 
 /// Input parameters for token retrieval.
