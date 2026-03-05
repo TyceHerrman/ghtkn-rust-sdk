@@ -1,0 +1,36 @@
+[tasks.test]
+alias = ["t"]
+description = "Run all tests"
+run = "cargo test"
+
+[tasks.vet]
+alias = ["v"]
+description = "Run clippy linter"
+run = "cargo clippy -- -D warnings"
+
+[tasks.fmt]
+alias = ["f"]
+description = "Check formatting"
+run = "cargo fmt -- --check"
+
+[tasks.build]
+alias = ["b"]
+description = "Build the project"
+run = "cargo build"
+
+[tasks.doc]
+alias = ["d"]
+description = "Generate documentation"
+run = "cargo doc --no-deps --open"
+
+[tasks.deny]
+description = "Check advisories and licenses"
+run = "cargo deny check"
+
+[tasks.machete]
+description = "Detect unused dependencies"
+run = "cargo machete --with-metadata"
+
+[tasks.msrv]
+description = "Verify MSRV"
+run = "cargo msrv verify"

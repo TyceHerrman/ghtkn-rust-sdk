@@ -47,7 +47,7 @@ After making code changes, **always run** the following commands to validate and
 ### Validation (clippy)
 
 ```bash
-cmdx v
+mise run v
 ```
 
 Runs `cargo clippy -- -D warnings`.
@@ -55,7 +55,7 @@ Runs `cargo clippy -- -D warnings`.
 ### Testing
 
 ```bash
-cmdx t
+mise run t
 ```
 
 Runs `cargo test`.
@@ -63,7 +63,7 @@ Runs `cargo test`.
 ### Formatting
 
 ```bash
-cmdx fmt
+mise run fmt
 ```
 
 Runs `cargo fmt -- --check`.
@@ -91,7 +91,7 @@ ghtkn-rust-sdk/
 │   ├── custom_log.rs   # Custom logging callbacks
 │   └── custom_ui.rs    # Custom device code UI
 ├── Cargo.toml
-├── cmdx.yaml           # Task runner configuration
+├── mise.toml           # Task runner configuration
 └── AGENTS.md           # AI assistant guidelines (this file)
 ```
 
@@ -143,7 +143,7 @@ Central error type using `thiserror`. All modules use `Error` and `Result<T>` fr
 
 ### Running Tests
 
-- Run all tests: `cmdx t` or `cargo test`
+- Run all tests: `mise run t` or `cargo test`
 - Run a specific test: `cargo test test_name`
 - Run tests for a specific module: `cargo test config::tests`
 
@@ -190,7 +190,7 @@ This project uses:
 ## Pull Request Process
 
 1. Create a feature branch from `main`
-2. Make changes and ensure `cmdx v`, `cmdx t`, and `cmdx fmt` pass
+2. Make changes and ensure `mise run v`, `mise run t`, and `mise run fmt` pass
 3. Write clear commit messages following Conventional Commits
 4. Create PR with descriptive title and body
 5. Wait for CI checks to pass
@@ -199,19 +199,19 @@ This project uses:
 
 ```bash
 # Run clippy linter
-cmdx v
+mise run v
 
 # Run tests
-cmdx t
+mise run t
 
 # Check formatting
-cmdx fmt
+mise run fmt
 
 # Build the project
-cmdx b
+mise run b
 
 # Generate documentation
-cmdx d
+mise run d
 ```
 
 ## Cross-Tool Compatibility
