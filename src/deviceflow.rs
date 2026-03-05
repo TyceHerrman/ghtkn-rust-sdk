@@ -94,24 +94,25 @@ impl DeviceCodeUI for SimpleDeviceCodeUI {
 /// Device flow client for obtaining GitHub access tokens.
 ///
 /// Encapsulates the HTTP client, browser, logger, and UI needed to run the
-/// full device authorization grant flow.
-pub struct DeviceFlowClient {
+/// full device authorization grant flow. All dependencies are borrowed so that
+/// the caller retains ownership and can reuse them across multiple calls.
+pub struct DeviceFlowClient<'a> {
     http_client: reqwest::Client,
-    browser: Box<dyn Browser>,
-    logger: Logger,
-    device_code_ui: Box<dyn DeviceCodeUI>,
+    browser: &'a dyn Browser,
+    logger: &'a Logger,
+    device_code_ui: &'a dyn DeviceCodeUI,
     /// Base URL for GitHub endpoints. Defaults to `https://github.com`.
     /// Override for testing with a mock server.
     base_url: String,
 }
 
-impl DeviceFlowClient {
+impl<'a> DeviceFlowClient<'a> {
     /// Create a new device flow client with the default GitHub base URL.
     pub fn new(
         http_client: reqwest::Client,
-        browser: Box<dyn Browser>,
-        logger: Logger,
-        device_code_ui: Box<dyn DeviceCodeUI>,
+        browser: &'a dyn Browser,
+        logger: &'a Logger,
+        device_code_ui: &'a dyn DeviceCodeUI,
     ) -> Self {
         Self {
             http_client,
@@ -125,9 +126,9 @@ impl DeviceFlowClient {
     /// Create a new device flow client with a custom base URL (for testing).
     pub fn with_base_url(
         http_client: reqwest::Client,
-        browser: Box<dyn Browser>,
-        logger: Logger,
-        device_code_ui: Box<dyn DeviceCodeUI>,
+        browser: &'a dyn Browser,
+        logger: &'a Logger,
+        device_code_ui: &'a dyn DeviceCodeUI,
         base_url: String,
     ) -> Self {
         Self {
@@ -334,18 +335,13 @@ mod tests {
     }
 
     /// Create a device flow client pointing at the given mock server.
-    fn make_client(
+    fn make_client<'a>(
         server: &MockServer,
-        browser: Box<dyn Browser>,
-        logger: Logger,
-    ) -> DeviceFlowClient {
-        DeviceFlowClient::with_base_url(
-            reqwest::Client::new(),
-            browser,
-            logger,
-            Box::new(NoopUI),
-            server.uri(),
-        )
+        browser: &'a dyn Browser,
+        logger: &'a Logger,
+        ui: &'a dyn DeviceCodeUI,
+    ) -> DeviceFlowClient<'a> {
+        DeviceFlowClient::with_base_url(reqwest::Client::new(), browser, logger, ui, server.uri())
     }
 
     // ---------------------------------------------------------------
@@ -368,7 +364,10 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = make_client(&server, Box::new(OkBrowser), Logger::new());
+        let browser = OkBrowser;
+        let logger = Logger::new();
+        let ui = NoopUI;
+        let client = make_client(&server, &browser, &logger, &ui);
         let resp = client.get_device_code("test_client_id").await.unwrap();
 
         assert_eq!(resp.device_code, "dc_test123");
@@ -391,7 +390,10 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = make_client(&server, Box::new(OkBrowser), Logger::new());
+        let browser = OkBrowser;
+        let logger = Logger::new();
+        let ui = NoopUI;
+        let client = make_client(&server, &browser, &logger, &ui);
 
         // Use a very short interval for testing and a far-future expiration.
         let expiration = Utc::now() + chrono::Duration::seconds(900);
@@ -428,7 +430,10 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = make_client(&server, Box::new(OkBrowser), Logger::new());
+        let browser = OkBrowser;
+        let logger = Logger::new();
+        let ui = NoopUI;
+        let client = make_client(&server, &browser, &logger, &ui);
         let expiration = Utc::now() + chrono::Duration::seconds(900);
 
         // Use interval=0 so polling is fast in tests.
@@ -465,7 +470,10 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = make_client(&server, Box::new(OkBrowser), Logger::new());
+        let browser = OkBrowser;
+        let logger = Logger::new();
+        let ui = NoopUI;
+        let client = make_client(&server, &browser, &logger, &ui);
         let expiration = Utc::now() + chrono::Duration::seconds(900);
 
         // Start with interval 0; after slow_down it becomes 0 + 5s = 5s.
@@ -492,7 +500,10 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = make_client(&server, Box::new(OkBrowser), Logger::new());
+        let browser = OkBrowser;
+        let logger = Logger::new();
+        let ui = NoopUI;
+        let client = make_client(&server, &browser, &logger, &ui);
 
         // Set expiration in the past so the first poll check sees it expired.
         let expiration = Utc::now() - chrono::Duration::seconds(10);
@@ -520,7 +531,10 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = make_client(&server, Box::new(OkBrowser), Logger::new());
+        let browser = OkBrowser;
+        let logger = Logger::new();
+        let ui = NoopUI;
+        let client = make_client(&server, &browser, &logger, &ui);
         let expiration = Utc::now() + chrono::Duration::seconds(900);
 
         let result = client
@@ -560,7 +574,10 @@ mod tests {
             .await;
 
         // Use a browser that fails -- the flow should still complete.
-        let client = make_client(&server, Box::new(FailingBrowser), Logger::new());
+        let browser = FailingBrowser;
+        let logger = Logger::new();
+        let ui = NoopUI;
+        let client = make_client(&server, &browser, &logger, &ui);
         let result = client.create("test_client_id").await;
 
         assert!(result.is_ok());
@@ -600,11 +617,13 @@ mod tests {
             .mount(&server)
             .await;
 
+        let browser = NoCommandBrowser;
+        let ui = NoopUI;
         let client = DeviceFlowClient::with_base_url(
             reqwest::Client::new(),
-            Box::new(NoCommandBrowser),
-            logger,
-            Box::new(NoopUI),
+            &browser,
+            &logger,
+            &ui,
             server.uri(),
         );
 
@@ -651,11 +670,13 @@ mod tests {
             .mount(&server)
             .await;
 
+        let browser = FailingBrowser;
+        let ui = NoopUI;
         let client = DeviceFlowClient::with_base_url(
             reqwest::Client::new(),
-            Box::new(FailingBrowser),
-            logger,
-            Box::new(NoopUI),
+            &browser,
+            &logger,
+            &ui,
             server.uri(),
         );
 
@@ -729,7 +750,10 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = make_client(&server, Box::new(OkBrowser), Logger::new());
+        let browser = OkBrowser;
+        let logger = Logger::new();
+        let ui = NoopUI;
+        let client = make_client(&server, &browser, &logger, &ui);
         let token = client.create("test_client_id").await.unwrap();
 
         assert_eq!(token.access_token, "ghu_full_flow_token");
