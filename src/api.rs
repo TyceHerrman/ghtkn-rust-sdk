@@ -104,6 +104,14 @@ impl Client {
         self.keyring = keyring;
     }
 
+    /// Create a reusable [`TokenSource`] that caches the access token.
+    ///
+    /// Consumes the `Client` and returns a `TokenSource` that can be
+    /// called repeatedly to get a cached token.
+    pub fn token_source(self, input: InputGet) -> TokenSource {
+        TokenSource::new(self, input)
+    }
+
     /// Get a GitHub access token.
     ///
     /// Flow:
