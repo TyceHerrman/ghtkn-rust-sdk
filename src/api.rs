@@ -313,7 +313,7 @@ impl TokenSource {
     ///
     /// This is the recommended entry point for consumers using ghtkn as a
     /// fallback token source (like mise or aqua). All errors are treated
-    /// as "no token available" and logged via `tracing::warn!`.
+    /// as "no token available" and logged via `tracing::debug!`.
     ///
     /// **Note**: On a cache miss, this triggers the full OAuth device flow
     /// (opens browser, waits for user authorization). Gate calls behind an
@@ -322,7 +322,7 @@ impl TokenSource {
         match self.token().await {
             Ok(token) => Some(token),
             Err(e) => {
-                tracing::warn!(error = %e, "ghtkn token unavailable");
+                tracing::debug!(error = %e, "ghtkn token unavailable");
                 None
             }
         }
