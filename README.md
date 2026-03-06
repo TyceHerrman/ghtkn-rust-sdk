@@ -18,13 +18,15 @@ Rust port of ghtkn-go-sdk — GitHub token management via OAuth device flow.
 mise install
 ```
 
-Tools like cargo-deny, cargo-machete, git-cliff, and jq are installed on demand by the tasks that need them.
+This provisions cargo-deny, cargo-machete, cargo-release, git-cliff, jq, and other helpers.
 
 ### Common Commands
 
-| Command              | Description                                          |
-|----------------------|------------------------------------------------------|
-| `mise run ci`        | Run all CI checks locally (single OS, not the matrix)|
-| `mise run lint`      | Quick lint (clippy + fmt) — fast, offline             |
-| `mise run t`         | Run tests                                            |
-| `mise run changelog` | Generate CHANGELOG.md via git-cliff                  |
+| Command              | Description                                            |
+|----------------------|--------------------------------------------------------|
+| `mise run ci`        | Run all CI checks locally (single OS, not the matrix)  |
+| `mise run lint`      | Quick lint (clippy + fmt)                              |
+| `mise run t`         | Run tests                                              |
+| `mise run v`         | Run clippy with `-D warnings` (warnings are errors)    |
+| `mise run f`         | Check formatting via `cargo fmt --check`               |
+| `mise run changelog` | Generate CHANGELOG.md via git-cliff                    |
