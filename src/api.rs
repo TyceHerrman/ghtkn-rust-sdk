@@ -108,14 +108,14 @@ impl Client {
         self.keyring = keyring;
     }
 
-    /// Set a custom GitHub base URL (for testing).
+    /// Set a custom GitHub base URL (e.g. for GitHub Enterprise Server).
     pub fn set_github_base_url(&mut self, url: String) {
-        self.github_base_url = url;
+        self.github_base_url = url.trim_end_matches('/').to_string();
     }
 
-    /// Set a custom GitHub API base URL (for testing).
+    /// Set a custom GitHub API base URL (e.g. for GitHub Enterprise Server).
     pub fn set_api_base_url(&mut self, url: String) {
-        self.api_base_url = url;
+        self.api_base_url = url.trim_end_matches('/').to_string();
     }
 
     /// Create a reusable [`TokenSource`] that caches the access token.
@@ -313,7 +313,7 @@ impl TokenSource {
     ///
     /// This is the recommended entry point for consumers using ghtkn as a
     /// fallback token source (like mise or aqua). All errors are treated
-    /// as "no token available" and logged via `tracing::debug!`.
+    /// as "no token available" and logged via `tracing::warn!`.
     ///
     /// **Note**: On a cache miss, this triggers the full OAuth device flow
     /// (opens browser, waits for user authorization). Gate calls behind an
@@ -322,7 +322,7 @@ impl TokenSource {
         match self.token().await {
             Ok(token) => Some(token),
             Err(e) => {
-                tracing::debug!(error = %e, "ghtkn token unavailable");
+                tracing::warn!(error = %e, "ghtkn token unavailable");
                 None
             }
         }
@@ -343,8 +343,13 @@ mod tests {
     use std::time::Duration;
 
     use chrono::{TimeZone, Utc};
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
     use super::*;
+    use crate::browser::BrowserError;
+    use crate::deviceflow::DeviceCodeResponse;
+    use crate::keyring::KeyringBackend;
 
     // ---------------------------------------------------------------
     // check_expired
@@ -455,14 +460,6 @@ mod tests {
     // ---------------------------------------------------------------
     // Integration tests: StoreToken recovery, caching, token_or_none
     // ---------------------------------------------------------------
-
-    use chrono::DateTime;
-    use wiremock::matchers::{method, path};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
-
-    use crate::browser::BrowserError;
-    use crate::deviceflow::DeviceCodeResponse;
-    use crate::keyring::KeyringBackend;
 
     struct NoopBrowser;
 
