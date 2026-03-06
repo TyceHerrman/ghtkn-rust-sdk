@@ -1,7 +1,13 @@
 {
+  "enabledPlugins": {
+    "greptile@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true
+  },
   "sandbox": {
     "filesystem": {
-      "allowWrite": ["~/.cargo"]
+      "allowWrite": [
+        "~/.cargo"
+      ]
     }
   }
 }

@@ -34,3 +34,9 @@ run = "cargo machete --with-metadata"
 [tasks.msrv]
 description = "Verify MSRV"
 run = "cargo msrv verify"
+
+[tools]
+rust = { version = "1.94", components = "rust-analyzer,rust-src,llvm-tools" }
+
+[settings]
+lockfile = true
