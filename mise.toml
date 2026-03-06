@@ -1,27 +1,33 @@
+min_version = "2024.1.1"
+
+[tools]
+"cargo:cargo-deny" = "latest"
+"cargo:cargo-machete" = "latest"
+"cargo:cargo-release" = "latest"
+"cargo:git-cliff" = "latest"
+jq = "latest"
+
+[tasks.build]
+alias = ["b"]
+description = "Build the project"
+run = "cargo build --all-targets"
+
 [tasks.test]
 alias = ["t"]
 description = "Run all tests"
 run = "cargo test"
+env = { CARGO_TERM_COLOR = "always" }
 
 [tasks.vet]
 alias = ["v"]
 description = "Run clippy linter"
 run = "cargo clippy -- -D warnings"
+env = { CARGO_TERM_COLOR = "always" }
 
 [tasks.fmt]
 alias = ["f"]
 description = "Check formatting"
 run = "cargo fmt -- --check"
-
-[tasks.build]
-alias = ["b"]
-description = "Build the project"
-run = "cargo build"
-
-[tasks.doc]
-alias = ["d"]
-description = "Generate documentation"
-run = "cargo doc --no-deps --open"
 
 [tasks.deny]
 description = "Check advisories and licenses"
@@ -32,5 +38,38 @@ description = "Detect unused dependencies"
 run = "cargo machete --with-metadata"
 
 [tasks.msrv]
-description = "Verify MSRV"
-run = "cargo msrv verify"
+description = "Verify MSRV compatibility"
+run = """
+MSRV=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].rust_version')
+rustup toolchain install "$MSRV" --profile minimal
+cargo +"$MSRV" check --all-targets
+"""
+
+[tasks.doc]
+alias = ["d"]
+description = "Generate documentation"
+run = "cargo doc --no-deps --open"
+
+[tasks.lint]
+description = "Quick lint (vet + fmt)"
+depends = ["vet", "fmt"]
+
+[tasks.ci]
+description = "Full CI parity check"
+depends = ["build", "test", "vet", "fmt", "deny", "machete", "msrv"]
+
+[tasks.pre-commit]
+description = "Pre-commit checks (fast, offline)"
+depends = ["lint"]
+
+[tasks.clean]
+description = "Clean build artifacts"
+run = "cargo clean"
+
+[tasks.changelog]
+description = "Generate changelog"
+run = "git-cliff -o CHANGELOG.md"
+
+[tasks.release]
+description = "Run cargo-release"
+run = "cargo release"
