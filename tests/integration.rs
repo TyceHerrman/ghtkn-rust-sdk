@@ -538,8 +538,9 @@ impl KeyringBackend for FailingWriteBackend {
     }
 }
 
-/// Mount wiremock mocks for the full device flow + /user endpoint.
-async fn mount_device_flow_mocks(server: &MockServer) {
+/// Mount wiremock mocks on separate servers so the test validates that
+/// `/login/*` requests hit `github_base_url` and `/user` hits `api_base_url`.
+async fn mount_device_flow_mocks(github_server: &MockServer, api_server: &MockServer) {
     Mock::given(method("POST"))
         .and(path("/login/device/code"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -549,7 +550,7 @@ async fn mount_device_flow_mocks(server: &MockServer) {
             "expires_in": 900,
             "interval": 0
         })))
-        .mount(server)
+        .mount(github_server)
         .await;
 
     Mock::given(method("POST"))
@@ -558,7 +559,7 @@ async fn mount_device_flow_mocks(server: &MockServer) {
             "access_token": "ghu_test_token_abc",
             "expires_in": 28800
         })))
-        .mount(server)
+        .mount(github_server)
         .await;
 
     Mock::given(method("GET"))
@@ -566,18 +567,18 @@ async fn mount_device_flow_mocks(server: &MockServer) {
         .respond_with(
             ResponseTemplate::new(200).set_body_json(serde_json::json!({"login": "testuser"})),
         )
-        .mount(server)
+        .mount(api_server)
         .await;
 }
 
-/// Build a Client pointing at the wiremock server with a failing keyring.
-fn make_test_client(server_uri: &str) -> Client {
+/// Build a Client with separate base URLs so the test validates correct routing.
+fn make_test_client(github_uri: &str, api_uri: &str) -> Client {
     let mut client = Client::new();
     client.set_browser(Box::new(NoopBrowser));
     client.set_device_code_ui(Box::new(NoopUI));
     client.set_keyring(Keyring::with_backend(Box::new(FailingWriteBackend)));
-    client.set_github_base_url(server_uri.to_string());
-    client.set_api_base_url(server_uri.to_string());
+    client.set_github_base_url(github_uri.to_string());
+    client.set_api_base_url(api_uri.to_string());
     client
 }
 
@@ -586,10 +587,14 @@ fn make_test_client(server_uri: &str) -> Client {
 /// The failing keyring triggers StoreToken, but TokenSource::token()
 /// extracts the token and returns Ok. A second call returns the cached
 /// token without hitting the server again.
+///
+/// Uses two MockServers to verify `/login/*` hits `github_base_url`
+/// and `/user` hits `api_base_url`.
 #[tokio::test]
 async fn test_token_store_token_recovery_and_caching() {
-    let server = MockServer::start().await;
-    mount_device_flow_mocks(&server).await;
+    let github_server = MockServer::start().await;
+    let api_server = MockServer::start().await;
+    mount_device_flow_mocks(&github_server, &api_server).await;
 
     let dir = tempfile::tempdir().unwrap();
     let config_path = dir.path().join("ghtkn.yaml");
@@ -599,7 +604,7 @@ async fn test_token_store_token_recovery_and_caching() {
     )
     .unwrap();
 
-    let client = make_test_client(&server.uri());
+    let client = make_test_client(&github_server.uri(), &api_server.uri());
     let ts = client.token_source(InputGet {
         config_file_path: config_path.to_str().unwrap().to_string(),
         ..Default::default()
@@ -609,17 +614,38 @@ async fn test_token_store_token_recovery_and_caching() {
     let token = ts.token().await.expect("should recover from StoreToken");
     assert_eq!(token, "ghu_test_token_abc");
 
-    // Record how many requests hit the access_token endpoint.
-    let requests_after_first = server.received_requests().await.unwrap().len();
+    // Verify each server received only its expected requests.
+    let github_requests = github_server.received_requests().await.unwrap();
+    assert_eq!(
+        github_requests.len(),
+        2,
+        "github_server should receive exactly 2 requests (device/code + access_token)"
+    );
+
+    let api_requests = api_server.received_requests().await.unwrap();
+    assert_eq!(
+        api_requests.len(),
+        1,
+        "api_server should receive exactly 1 request (/user)"
+    );
+
+    // Record totals before the second call.
+    let github_count_before = github_requests.len();
+    let api_count_before = api_requests.len();
 
     // Second call returns cached token — no new server requests.
     let token2 = ts.token().await.expect("should return cached token");
     assert_eq!(token2, "ghu_test_token_abc");
 
-    let requests_after_second = server.received_requests().await.unwrap().len();
     assert_eq!(
-        requests_after_first, requests_after_second,
-        "second call should use cached token, not hit server"
+        github_server.received_requests().await.unwrap().len(),
+        github_count_before,
+        "second call should use cached token, not hit github_server"
+    );
+    assert_eq!(
+        api_server.received_requests().await.unwrap().len(),
+        api_count_before,
+        "second call should use cached token, not hit api_server"
     );
 }
 
@@ -645,8 +671,9 @@ async fn test_token_or_none_returns_none_on_error() {
 /// token_or_none() returns Some on success (via StoreToken recovery).
 #[tokio::test]
 async fn test_token_or_none_returns_some_on_success() {
-    let server = MockServer::start().await;
-    mount_device_flow_mocks(&server).await;
+    let github_server = MockServer::start().await;
+    let api_server = MockServer::start().await;
+    mount_device_flow_mocks(&github_server, &api_server).await;
 
     let dir = tempfile::tempdir().unwrap();
     let config_path = dir.path().join("ghtkn.yaml");
@@ -656,7 +683,7 @@ async fn test_token_or_none_returns_some_on_success() {
     )
     .unwrap();
 
-    let client = make_test_client(&server.uri());
+    let client = make_test_client(&github_server.uri(), &api_server.uri());
     let ts = client.token_source(InputGet {
         config_file_path: config_path.to_str().unwrap().to_string(),
         ..Default::default()

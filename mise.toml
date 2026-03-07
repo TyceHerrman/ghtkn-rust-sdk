@@ -1,3 +1,9 @@
+[plugins]
+fnox-env = "https://github.com/jdx/mise-env-fnox"
+
+[env]
+_.fnox-env = { tools = true }
+
 [tasks.test]
 alias = ["t"]
 description = "Run all tests"
@@ -37,6 +43,7 @@ run = "cargo msrv verify"
 
 [tools]
 rust = { version = "1.94", components = "rust-analyzer,rust-src,llvm-tools" }
+fnox = "latest"
 
 [settings]
 lockfile = true
