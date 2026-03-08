@@ -652,10 +652,14 @@ async fn test_token_store_token_recovery_and_caching() {
 /// token_or_none() returns None when the config file doesn't exist.
 #[tokio::test]
 async fn test_token_or_none_returns_none_on_error() {
+    let github_server = MockServer::start().await;
+    let api_server = MockServer::start().await;
+    // no mocks mounted — any request would 404 / be unexpected
+
     let dir = tempfile::tempdir().unwrap();
     let missing_config = dir.path().join("ghtkn.yaml");
 
-    let client = Client::new();
+    let client = make_test_client(&github_server.uri(), &api_server.uri());
     let ts = client.token_source(InputGet {
         config_file_path: missing_config.to_str().unwrap().to_string(),
         ..Default::default()
