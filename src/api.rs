@@ -316,7 +316,7 @@ impl TokenSource {
     ///
     /// This is the recommended entry point for consumers using ghtkn as a
     /// fallback token source (like mise or aqua). All errors are treated
-    /// as "no token available" and logged via `tracing::debug!`.
+    /// as "no token available" and logged via `tracing::warn!`.
     ///
     /// **Note**: On a cache miss, this triggers the full OAuth device flow
     /// (opens browser, waits for user authorization). Gate calls behind an
@@ -325,7 +325,7 @@ impl TokenSource {
         match self.token().await {
             Ok(token) => Some(token),
             Err(e) => {
-                tracing::debug!(error = %e, "ghtkn token unavailable");
+                tracing::warn!(error = %e, "ghtkn token unavailable");
                 None
             }
         }
@@ -443,6 +443,20 @@ mod tests {
     fn test_client_set_keyring() {
         let mut client = Client::new();
         client.set_keyring(Keyring::new());
+    }
+
+    #[test]
+    fn test_client_set_github_base_url_trims_trailing_slash() {
+        let mut client = Client::new();
+        client.set_github_base_url("https://ghe.example.com/".to_string());
+        assert_eq!(client.github_base_url, "https://ghe.example.com");
+    }
+
+    #[test]
+    fn test_client_set_api_base_url_trims_trailing_slash() {
+        let mut client = Client::new();
+        client.set_api_base_url("https://ghe.example.com/api/v3/".to_string());
+        assert_eq!(client.api_base_url, "https://ghe.example.com/api/v3");
     }
 
     // ---------------------------------------------------------------

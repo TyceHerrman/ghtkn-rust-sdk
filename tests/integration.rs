@@ -590,7 +590,7 @@ fn make_test_client(github_uri: &str, api_uri: &str) -> Client {
 ///
 /// Uses two MockServers to verify `/login/*` hits `github_base_url`
 /// and `/user` hits `api_base_url`.
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn test_token_store_token_recovery_and_caching() {
     let github_server = MockServer::start().await;
     let api_server = MockServer::start().await;
@@ -673,7 +673,7 @@ async fn test_token_or_none_returns_none_on_error() {
 }
 
 /// token_or_none() returns Some on success (via StoreToken recovery).
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn test_token_or_none_returns_some_on_success() {
     let github_server = MockServer::start().await;
     let api_server = MockServer::start().await;
