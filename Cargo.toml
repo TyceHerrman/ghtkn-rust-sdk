@@ -5,7 +5,9 @@ edition = "2024"
 rust-version = "1.88"
 description = "GitHub token management via OAuth device flow"
 license = "MIT"
-repository = "https://github.com/user/ghtkn-rust-sdk"
+repository = "https://github.com/TyceHerrman/ghtkn-rust-sdk"
+keywords = ["github", "token", "oauth"]
+categories = ["authentication"]
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
