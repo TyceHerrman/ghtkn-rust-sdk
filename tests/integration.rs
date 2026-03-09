@@ -7,11 +7,16 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use chrono::{TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use pretty_assertions::assert_eq;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
+use ghtkn::browser::{Browser, BrowserError};
 use ghtkn::config::{App, Config};
-use ghtkn::keyring::{AccessToken, DEFAULT_SERVICE_KEY, KeyringBackend};
+use ghtkn::deviceflow::{DeviceCodeResponse, DeviceCodeUI};
+use ghtkn::keyring::{AccessToken, DEFAULT_SERVICE_KEY, Keyring, KeyringBackend};
+use ghtkn::{Client, InputGet};
 
 // ---------------------------------------------------------------------------
 // Mock keyring backend (same pattern as unit tests, but accessible here)
@@ -492,4 +497,206 @@ fn full_config_roundtrip_multiple_apps() {
     // Select by name.
     let app = ghtkn::config::select_app(&cfg, "oss", "").unwrap();
     assert_eq!(app.name, "oss");
+}
+
+// ---------------------------------------------------------------------------
+// StoreToken recovery, caching, token_or_none
+// ---------------------------------------------------------------------------
+
+struct NoopBrowser;
+
+impl Browser for NoopBrowser {
+    fn open(&self, _url: &str) -> Result<(), BrowserError> {
+        Ok(())
+    }
+}
+
+struct NoopUI;
+
+impl DeviceCodeUI for NoopUI {
+    fn show(
+        &self,
+        _device_code: &DeviceCodeResponse,
+        _expiration_date: DateTime<Utc>,
+    ) -> Result<(), ghtkn::Error> {
+        Ok(())
+    }
+}
+
+/// Keyring backend that reads return "no entry" and writes always fail.
+struct FailingWriteBackend;
+
+impl KeyringBackend for FailingWriteBackend {
+    fn get(&self, _service: &str, _user: &str) -> ghtkn::Result<Option<String>> {
+        Ok(None)
+    }
+
+    fn set(&self, _service: &str, _user: &str, _password: &str) -> ghtkn::Result<()> {
+        Err(ghtkn::Error::Keyring(
+            "simulated keyring write failure".into(),
+        ))
+    }
+}
+
+/// Mount wiremock mocks on separate servers so the test validates that
+/// `/login/*` requests hit `github_base_url` and `/user` hits `api_base_url`.
+async fn mount_device_flow_mocks(github_server: &MockServer, api_server: &MockServer) {
+    Mock::given(method("POST"))
+        .and(path("/login/device/code"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "device_code": "dc_test",
+            "user_code": "ABCD-1234",
+            "verification_uri": "https://github.com/login/device",
+            "expires_in": 900,
+            "interval": 0
+        })))
+        .mount(github_server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path("/login/oauth/access_token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "access_token": "ghu_test_token_abc",
+            "expires_in": 28800
+        })))
+        .mount(github_server)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/user"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({"login": "testuser"})),
+        )
+        .mount(api_server)
+        .await;
+}
+
+/// Build a Client with separate base URLs so the test validates correct routing.
+fn make_test_client(github_uri: &str, api_uri: &str) -> Client {
+    let mut client = Client::new();
+    client.set_browser(Box::new(NoopBrowser));
+    client.set_device_code_ui(Box::new(NoopUI));
+    client.set_keyring(Keyring::with_backend(Box::new(FailingWriteBackend)));
+    client.set_github_base_url(github_uri.to_string());
+    client.set_api_base_url(api_uri.to_string());
+    client
+}
+
+/// token() recovers from StoreToken and caches the result.
+///
+/// The failing keyring triggers StoreToken, but TokenSource::token()
+/// extracts the token and returns Ok. A second call returns the cached
+/// token without hitting the server again.
+///
+/// Uses two MockServers to verify `/login/*` hits `github_base_url`
+/// and `/user` hits `api_base_url`.
+#[tokio::test(start_paused = true)]
+async fn test_token_store_token_recovery_and_caching() {
+    let github_server = MockServer::start().await;
+    let api_server = MockServer::start().await;
+    mount_device_flow_mocks(&github_server, &api_server).await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let config_path = dir.path().join("ghtkn.yaml");
+    std::fs::write(
+        &config_path,
+        "apps:\n  - name: test-app\n    client_id: test_client_id\n",
+    )
+    .unwrap();
+
+    let client = make_test_client(&github_server.uri(), &api_server.uri());
+    let ts = client.token_source(InputGet {
+        config_file_path: config_path.to_str().unwrap().to_string(),
+        ..Default::default()
+    });
+
+    // First call recovers the token despite keyring write failure.
+    let token = ts.token().await.expect("should recover from StoreToken");
+    assert_eq!(token, "ghu_test_token_abc");
+
+    // Verify each server received only its expected requests.
+    let github_requests = github_server.received_requests().await.unwrap();
+    assert_eq!(
+        github_requests.len(),
+        2,
+        "github_server should receive exactly 2 requests (device/code + access_token)"
+    );
+
+    let api_requests = api_server.received_requests().await.unwrap();
+    assert_eq!(
+        api_requests.len(),
+        1,
+        "api_server should receive exactly 1 request (/user)"
+    );
+
+    // Record totals before the second call.
+    let github_count_before = github_requests.len();
+    let api_count_before = api_requests.len();
+
+    // Second call returns cached token — no new server requests.
+    let token2 = ts.token().await.expect("should return cached token");
+    assert_eq!(token2, "ghu_test_token_abc");
+
+    assert_eq!(
+        github_server.received_requests().await.unwrap().len(),
+        github_count_before,
+        "second call should use cached token, not hit github_server"
+    );
+    assert_eq!(
+        api_server.received_requests().await.unwrap().len(),
+        api_count_before,
+        "second call should use cached token, not hit api_server"
+    );
+}
+
+/// token_or_none() returns None when the config file doesn't exist.
+#[tokio::test]
+async fn test_token_or_none_returns_none_on_error() {
+    let github_server = MockServer::start().await;
+    let api_server = MockServer::start().await;
+    // no mocks mounted — any request would 404 / be unexpected
+
+    let dir = tempfile::tempdir().unwrap();
+    let missing_config = dir.path().join("ghtkn.yaml");
+
+    let client = make_test_client(&github_server.uri(), &api_server.uri());
+    let ts = client.token_source(InputGet {
+        config_file_path: missing_config.to_str().unwrap().to_string(),
+        ..Default::default()
+    });
+
+    let result = ts.token_or_none().await;
+    assert!(
+        result.is_none(),
+        "should return None when config is missing"
+    );
+}
+
+/// token_or_none() returns Some on success (via StoreToken recovery).
+#[tokio::test(start_paused = true)]
+async fn test_token_or_none_returns_some_on_success() {
+    let github_server = MockServer::start().await;
+    let api_server = MockServer::start().await;
+    mount_device_flow_mocks(&github_server, &api_server).await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let config_path = dir.path().join("ghtkn.yaml");
+    std::fs::write(
+        &config_path,
+        "apps:\n  - name: test-app\n    client_id: test_client_id\n",
+    )
+    .unwrap();
+
+    let client = make_test_client(&github_server.uri(), &api_server.uri());
+    let ts = client.token_source(InputGet {
+        config_file_path: config_path.to_str().unwrap().to_string(),
+        ..Default::default()
+    });
+
+    let result = ts.token_or_none().await;
+    assert_eq!(
+        result,
+        Some("ghu_test_token_abc".to_string()),
+        "should return Some(token) on success"
+    );
 }

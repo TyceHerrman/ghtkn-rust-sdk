@@ -1,11 +1,22 @@
 min_version = "2024.1.1"
 
+[plugins]
+fnox-env = "https://github.com/jdx/mise-env-fnox"
+
+[env]
+_.fnox-env = { tools = true }
+
 [tools]
+rust = { version = "1.94", components = "rust-analyzer,rust-src,llvm-tools" }
+fnox = "latest"
 "cargo:cargo-deny" = "latest"
 "cargo:cargo-machete" = "latest"
 "cargo:cargo-release" = "latest"
 "cargo:git-cliff" = "latest"
 jq = "latest"
+
+[settings]
+lockfile = true
 
 [tasks.build]
 alias = ["b"]

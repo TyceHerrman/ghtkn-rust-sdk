@@ -71,6 +71,8 @@ pub struct Client {
     device_code_ui: Box<dyn DeviceCodeUI>,
     browser: Box<dyn Browser>,
     keyring: Keyring,
+    github_base_url: String,
+    api_base_url: String,
 }
 
 impl Client {
@@ -81,6 +83,8 @@ impl Client {
             device_code_ui: Box::new(SimpleDeviceCodeUI),
             browser: Box::new(DefaultBrowser),
             keyring: Keyring::new(),
+            github_base_url: "https://github.com".to_string(),
+            api_base_url: "https://api.github.com".to_string(),
         }
     }
 
@@ -102,6 +106,16 @@ impl Client {
     /// Set a custom keyring (e.g. with a mock backend for testing).
     pub fn set_keyring(&mut self, keyring: Keyring) {
         self.keyring = keyring;
+    }
+
+    /// Set a custom GitHub base URL (e.g. for GitHub Enterprise Server).
+    pub fn set_github_base_url(&mut self, url: String) {
+        self.github_base_url = url.trim_end_matches('/').to_string();
+    }
+
+    /// Set a custom GitHub API base URL (e.g. for GitHub Enterprise Server).
+    pub fn set_api_base_url(&mut self, url: String) {
+        self.api_base_url = url.trim_end_matches('/').to_string();
     }
 
     /// Create a reusable [`TokenSource`] that caches the access token.
@@ -214,17 +228,19 @@ impl Client {
     async fn create_token(&self, service: &str, app: &App) -> crate::Result<AccessToken> {
         let http_client = reqwest::Client::new();
 
-        let df_client = DeviceFlowClient::new(
+        let df_client = DeviceFlowClient::with_base_url(
             http_client,
             self.browser.as_ref(),
             &self.logger,
             self.device_code_ui.as_ref(),
+            self.github_base_url.clone(),
         );
 
         let df_token = df_client.create(&app.client_id).await?;
 
         // Get user login via GET /user.
-        let gh_client = GitHubClient::new(&df_token.access_token);
+        let gh_client =
+            GitHubClient::with_base_url(&df_token.access_token, self.api_base_url.clone());
         let user = gh_client.get_user().await?;
 
         let kr_token = AccessToken {
@@ -276,15 +292,43 @@ impl TokenSource {
     }
 
     /// Get a token, returning a cached value if available.
+    ///
+    /// Handles [`Error::StoreToken`] transparently: if the token was obtained
+    /// but the keyring write failed, the token is still cached and returned.
     pub async fn token(&self) -> crate::Result<String> {
         let mut cached = self.cached.lock().await;
         if let Some(token) = cached.as_ref() {
             return Ok(token.clone());
         }
-        let (token, _) = self.client.get(&self.input).await?;
-        let access_token = token.access_token.clone();
+        let access_token = match self.client.get(&self.input).await {
+            Ok((token, _)) => token.access_token,
+            Err(Error::StoreToken { token, message, .. }) => {
+                tracing::warn!(error = message, "keyring write failed, using token anyway");
+                token.access_token
+            }
+            Err(e) => return Err(e),
+        };
         *cached = Some(access_token.clone());
         Ok(access_token)
+    }
+
+    /// Get a token if available, returning `None` on any error.
+    ///
+    /// This is the recommended entry point for consumers using ghtkn as a
+    /// fallback token source (like mise or aqua). All errors are treated
+    /// as "no token available" and logged via `tracing::warn!`.
+    ///
+    /// **Note**: On a cache miss, this triggers the full OAuth device flow
+    /// (opens browser, waits for user authorization). Gate calls behind an
+    /// opt-in check (e.g. an environment variable) if this is undesirable.
+    pub async fn token_or_none(&self) -> Option<String> {
+        match self.token().await {
+            Ok(token) => Some(token),
+            Err(e) => {
+                tracing::warn!(error = %e, "ghtkn token unavailable");
+                None
+            }
+        }
     }
 }
 
@@ -399,6 +443,20 @@ mod tests {
     fn test_client_set_keyring() {
         let mut client = Client::new();
         client.set_keyring(Keyring::new());
+    }
+
+    #[test]
+    fn test_client_set_github_base_url_trims_trailing_slash() {
+        let mut client = Client::new();
+        client.set_github_base_url("https://ghe.example.com/".to_string());
+        assert_eq!(client.github_base_url, "https://ghe.example.com");
+    }
+
+    #[test]
+    fn test_client_set_api_base_url_trims_trailing_slash() {
+        let mut client = Client::new();
+        client.set_api_base_url("https://ghe.example.com/api/v3/".to_string());
+        assert_eq!(client.api_base_url, "https://ghe.example.com/api/v3");
     }
 
     // ---------------------------------------------------------------
