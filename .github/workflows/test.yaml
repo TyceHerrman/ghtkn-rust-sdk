@@ -52,7 +52,11 @@ jobs:
         with:
           shared-key: build
       - uses: taiki-e/install-action@854cac6590aa759ac55db7f79e5866185f97cacd # cargo-deny
+        with:
+          tool: cargo-deny
       - uses: taiki-e/install-action@854cac6590aa759ac55db7f79e5866185f97cacd # cargo-machete
+        with:
+          tool: cargo-machete
       - name: cargo deny
         run: cargo deny check
       - name: cargo machete
