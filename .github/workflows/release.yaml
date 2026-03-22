@@ -25,7 +25,7 @@ jobs:
         with:
           toolchain: stable
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           shared-key: build
       - name: Build
@@ -48,13 +48,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           shared-key: build
-      - uses: taiki-e/install-action@854cac6590aa759ac55db7f79e5866185f97cacd # cargo-deny
+      - uses: taiki-e/install-action@2c637c3acd58d858d7d0b2978a98bd432c7e488f # cargo-deny
         with:
           tool: cargo-deny
-      - uses: taiki-e/install-action@854cac6590aa759ac55db7f79e5866185f97cacd # cargo-machete
+      - uses: taiki-e/install-action@2c637c3acd58d858d7d0b2978a98bd432c7e488f # cargo-machete
         with:
           tool: cargo-machete
       - name: cargo deny
@@ -79,7 +79,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           shared-key: build
       - name: Verify version matches tag
