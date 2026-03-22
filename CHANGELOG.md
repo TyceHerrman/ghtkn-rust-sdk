@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - *(deps)* Update rust crate reqwest to 0.13 ([459a8f3](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/459a8f393331744beded7745377bda1cb7f360a7))
 - Add explicit tool inputs for taiki-e/install-action ([51e01a9](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/51e01a9598620cf038d6b5754800387c3d90b2d0))
 - Switch keyring from sync to async secret-service backend ([fc40370](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/fc4037000ee10c7ccd75d1a8a68e74d101db27e6))
+- *(deps)* Update rustls-webpki to 0.103.10 (RUSTSEC-2026-0049) ([9f207b2](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/9f207b2810061df1f4f7bc5b3b220462202f33ed))
 
 ### CI
 
@@ -51,6 +52,7 @@ All notable changes to this project will be documented in this file.
 - *(deps)* Update actions/checkout action to v6 ([4d8e6cc](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/4d8e6ccaf8269654e14397c3137171a1655efcdc))
 - *(deps)* Update taiki-e/install-action digest to 854cac6 ([fe57901](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/fe579016793c7cb06fe6d4124f453997cea19565))
 - Add greptile API key secret ([7ba9563](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/7ba956328e45efc7bd60de9f5a53766cfd82f10c))
+- Release v0.1.0 ([22280fc](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/22280fc992243e67c7e5f31cd5aecc2e29781340))
 
 ### Testing
 
