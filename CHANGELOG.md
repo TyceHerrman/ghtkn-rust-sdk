@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.1.0] - 2026-03-22
 
 ### Bug Fixes
 
@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file.
 - Add mise-managed Rust toolchain and enable Claude Code plugins ([5efab43](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/5efab438d7ba35bb6e121dafdc24202e38ef3e6c))
 - Add fnox config and ignore local overrides ([32cd505](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/32cd5057c1edb1408626e7acb80cb9e061c967db))
 - Improve project setup inspired by mise patterns ([e04a6da](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/e04a6dab6838fb97048043705b2f939c574530e8))
+- Add crates.io publish workflow and cargo-release config ([84b446e](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/84b446ea55e5814a95ac4ab3e7ce4414e36e28bf))
 
 ### Documentation
 
@@ -49,6 +50,7 @@ All notable changes to this project will be documented in this file.
 
 - *(deps)* Update actions/checkout action to v6 ([4d8e6cc](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/4d8e6ccaf8269654e14397c3137171a1655efcdc))
 - *(deps)* Update taiki-e/install-action digest to 854cac6 ([fe57901](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/fe579016793c7cb06fe6d4124f453997cea19565))
+- Add greptile API key secret ([7ba9563](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/7ba956328e45efc7bd60de9f5a53766cfd82f10c))
 
 ### Testing
 
