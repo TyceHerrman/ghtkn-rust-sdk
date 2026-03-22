@@ -7,7 +7,22 @@ description = "GitHub token management via OAuth device flow"
 license = "MIT"
 repository = "https://github.com/TyceHerrman/ghtkn-rust-sdk"
 keywords = ["github", "token", "oauth"]
+authors = ["Tyce Herrman"]
 categories = ["authentication"]
+homepage = "https://github.com/TyceHerrman/ghtkn-rust-sdk"
+documentation = "https://docs.rs/ghtkn"
+exclude = [
+    ".claude/",
+    ".github/",
+    "AGENTS.md",
+    "cliff.toml",
+    "deny.toml",
+    "fnox.toml",
+    "fnox.local.toml",
+    "mise.toml",
+    "mise.lock",
+    "renovate.json",
+]
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }

@@ -1,0 +1,10 @@
+allow-branch = ["main"]
+publish = false
+push = true
+push-remote = "origin"
+tag = true
+tag-prefix = ""
+tag-name = "v{{version}}"
+tag-message = "chore: release v{{version}}"
+pre-release-commit-message = "chore: release v{{version}}"
+pre-release-hook = ["git", "cliff", "-o", "CHANGELOG.md", "--tag", "v{{version}}"]
