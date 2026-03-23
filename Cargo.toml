@@ -3,18 +3,18 @@ name = "ghtkn"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
-description = "GitHub token management via OAuth device flow"
+description = "GitHub token management — OAuth device flow with keyring caching and config-driven app selection"
 license = "MIT"
 repository = "https://github.com/TyceHerrman/ghtkn-rust-sdk"
-keywords = ["github", "token", "oauth"]
+keywords = ["github", "token", "oauth", "keyring", "device-flow"]
 authors = ["Tyce Herrman"]
 categories = ["authentication"]
-homepage = "https://github.com/TyceHerrman/ghtkn-rust-sdk"
 documentation = "https://docs.rs/ghtkn"
 exclude = [
     ".claude/",
     ".github/",
     "AGENTS.md",
+    "CONTRIBUTING.md",
     "cliff.toml",
     "deny.toml",
     "fnox.toml",
