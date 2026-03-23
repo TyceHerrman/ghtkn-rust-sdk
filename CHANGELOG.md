@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-03-23
+
+### CI
+
+- Update Swatinem/rust-cache to v2.9.1 (Node.js 24) ([254c22a](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/254c22a113fcef4f84c6fa177c97ce3cf857da12))
+
+### Documentation
+
+- Rewrite README for crates.io and add CONTRIBUTING.md ([34df943](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/34df943d4925113a95ea43bab4d2e9af9987f8f3))
+
+### Miscellaneous
+
+- *(deps)* Update github actions ([0488851](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/04888513a31924f9c7c21a49db1efdb06e838999))
+
 ## [0.1.0] - 2026-03-22
 
 ### Bug Fixes
@@ -53,6 +67,7 @@ All notable changes to this project will be documented in this file.
 - *(deps)* Update taiki-e/install-action digest to 854cac6 ([fe57901](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/fe579016793c7cb06fe6d4124f453997cea19565))
 - Add greptile API key secret ([7ba9563](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/7ba956328e45efc7bd60de9f5a53766cfd82f10c))
 - Release v0.1.0 ([22280fc](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/22280fc992243e67c7e5f31cd5aecc2e29781340))
+- Release v0.1.0 ([4b46d39](https://github.com/TyceHerrman/ghtkn-rust-sdk/commit/4b46d3987a6009969abd94733735e45c3afc3503))
 
 ### Testing
 
