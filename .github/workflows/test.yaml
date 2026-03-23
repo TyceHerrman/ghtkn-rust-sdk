@@ -51,10 +51,10 @@ jobs:
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           shared-key: build
-      - uses: taiki-e/install-action@2c637c3acd58d858d7d0b2978a98bd432c7e488f # cargo-deny
+      - uses: taiki-e/install-action@dcad28ece20a148ca13d628754e681c1da4ca264 # cargo-deny
         with:
           tool: cargo-deny
-      - uses: taiki-e/install-action@2c637c3acd58d858d7d0b2978a98bd432c7e488f # cargo-machete
+      - uses: taiki-e/install-action@dcad28ece20a148ca13d628754e681c1da4ca264 # cargo-machete
         with:
           tool: cargo-machete
       - name: cargo deny
