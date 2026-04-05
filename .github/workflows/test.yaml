@@ -21,7 +21,7 @@ jobs:
       - name: Install system dependencies (Ubuntu)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
-      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
         with:
           toolchain: stable
           components: clippy, rustfmt
@@ -45,16 +45,16 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
-      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           shared-key: build
-      - uses: taiki-e/install-action@dcad28ece20a148ca13d628754e681c1da4ca264 # cargo-deny
+      - uses: taiki-e/install-action@8a9a3f889cd1bfb6901153fb6f3f25ccc1d7de19 # cargo-deny
         with:
           tool: cargo-deny
-      - uses: taiki-e/install-action@dcad28ece20a148ca13d628754e681c1da4ca264 # cargo-machete
+      - uses: taiki-e/install-action@611ef340252251e8fe34db367a9294a98df880e7 # cargo-machete
         with:
           tool: cargo-machete
       - name: cargo deny
