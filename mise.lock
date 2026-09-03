@@ -88,5 +88,8 @@ checksum = "sha256:23cb60a1354eed6bcc8d9b9735e8c7b388cd1fdcb75726b93bc299ef22dd9
 url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-windows-amd64.exe"
 
 [[tools.rust]]
-version = "1.94.0"
+version = "1.98.0"
 backend = "core:rust"
+
+[tools.rust.options]
+components = "llvm-tools,rust-analyzer,rust-src"
