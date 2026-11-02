@@ -9,7 +9,7 @@ version = "0.9.1"
 backend = "cargo:cargo-machete"
 
 [[tools."cargo:cargo-release"]]
-version = "1.1.1"
+version = "1.1.7"
 backend = "cargo:cargo-release"
 
 [[tools."cargo:git-cliff"]]
